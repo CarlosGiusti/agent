@@ -64,7 +64,7 @@ Adding a tool is catalog work: a factory in the tool's module, plus wiring in
 | `write_file` | `path`, `content` | Writes a UTF-8 file relative to the workspace, creating parent directories. No prompt |
 | `run_command` | `command` | Runs `bash -c` in the workspace sandbox, elevating with consent when blocked |
 | `load_skill` | `name` | Returns a skill body; see [harness.md](harness.md#skills) |
-| `web_search` | `query`, `max_results` | Present only when `TAVILY_API_KEY` is set |
+| `web_search` | `query`, `max_results` | Always present. Tavily when `TAVILY_API_KEY` is set, else `ddgs` |
 
 ### `read_file` / `write_file`
 
@@ -113,8 +113,10 @@ web_search(query, max_results)
     AuthorizationProtocol.check("web_search", {"query": query})
       Deny       -> denial text + permission.denied
       Allow once -> SearchBackend.search(query, limit)
-                      TavilySearchBackend
+                      TavilySearchBackend   (when TAVILY_API_KEY is set)
                         HttpTransport.post -> POST https://api.tavily.com/search
+                      DdgsSearchBackend     (default when the key is empty)
+                        TextSearchClient.text -> ddgs metasearch
     formatted results
 ```
 
@@ -130,8 +132,11 @@ query asks for consent; nothing is remembered. A backend failure returns
   `SearchResult` has `title`, `url`, `snippet`.
 - `HttpTransport` sits one level down, inside Tavily. `UrllibTransport` is the
   production implementation with a 20-second timeout.
+- `TextSearchClient` sits one level down, inside `ddgs`. `DdgsClient` is the
+  production implementation; tests inject a fake and never open the network.
 
-Tests inject fakes at both levels and never open the network.
+`main._search_backend` picks Tavily when `TAVILY_API_KEY` is non-empty,
+otherwise `ddgs`.
 
 ### Tavily request
 
@@ -151,3 +156,11 @@ result the backend keeps `title`, `url`, and `content` (as the snippet).
 
 Tavily answers from an index it has already built, so a very recent page may
 not appear. The tool neither crawls nor reranks.
+
+### ddgs
+
+`DdgsSearchBackend` calls `TextSearchClient.text(query, max_results=...)` and
+maps each hit's `title`, `href`, and `body` to `SearchResult`. No API key.
+Results come from public search engines via the `ddgs` package, so rate limits
+and HTML changes can break a call; failures surface as
+`Error: web search failed: ...`.

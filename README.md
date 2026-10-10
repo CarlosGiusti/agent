@@ -41,7 +41,7 @@ environment. Variables already set in the environment win.
 | --- | --- |
 | `AGENT_PROVIDER` | `ollama` (default, `qwen3:8b`) or `claude` (`claude-sonnet-5-5`). Any other value exits at startup |
 | `ANTHROPIC_API_KEY` | Required when `AGENT_PROVIDER=claude`. If empty, each turn ends with `stop_reason` `error` |
-| `TAVILY_API_KEY` | Enables the `web_search` tool. If empty, the tool is not registered |
+| `TAVILY_API_KEY` | When set, `web_search` uses Tavily. When empty, it falls back to `ddgs` (no key) |
 
 ## Harness configuration
 

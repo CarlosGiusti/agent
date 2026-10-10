@@ -44,7 +44,7 @@ flowchart TB
    that prompts through `Session.ask_elevation`.
 5. `MCPClient` connects every server in `~/.agent/mcp.json`.
 6. Rules and the skill index become the initial context; `load_skill` becomes
-   a local tool. `web_search` is added when `TAVILY_API_KEY` is set.
+   a local tool. `web_search` uses Tavily when `TAVILY_API_KEY` is set, else `ddgs`.
 7. `ToolRegistry` merges local and MCP tools; `Agent` receives
    `registry.tools`, never the registry itself.
 8. The REPL reads a line, calls `agent.send`, and prints the result. A provider

@@ -17,11 +17,12 @@ from lib.mcp.mcp_client import MCPClient
 from lib.rules.rules import rule_messages
 from lib.sandbox.sandbox import BwrapSandbox
 from lib.skills.skills import skill_messages
+from lib.tools.ddgs_search import DdgsClient, DdgsSearchBackend
 from lib.tools.shell import Shell
 from lib.tools.tavily import TavilySearchBackend, UrllibTransport
 from lib.tools.tool import Tool
 from lib.tools.tool_registry import ToolRegistry, make_local_tools
-from lib.tools.web_search import make_web_search
+from lib.tools.web_search import SearchBackend, make_web_search
 
 
 async def main():
@@ -44,10 +45,7 @@ async def main():
         rules = rule_messages(workspace)
         skills, load_skill = skill_messages(workspace)
         hooks = open_hooks(workspace, SubprocessHookProcess(), config.events)
-        local_tools = [load_skill]
-        web_search = _web_search(session, config.events)
-        if web_search is not None:
-            local_tools.append(web_search)
+        local_tools = [load_skill, _web_search(session, config.events)]
         registry = ToolRegistry(make_local_tools(workspace, shell, *local_tools))
         await registry.bootstrap(mcp_client)
 
@@ -80,15 +78,19 @@ def _provider() -> Provider:
     raise SystemExit(f"unknown AGENT_PROVIDER: {name}")
 
 
-def _web_search(session: Session, events: EventSystem) -> Tool | None:
-    api_key = os.environ.get("TAVILY_API_KEY", "").strip()
-    if not api_key:
-        return None
+def _web_search(session: Session, events: EventSystem) -> Tool:
     return make_web_search(
-        TavilySearchBackend(api_key, UrllibTransport()),
+        _search_backend(),
         PromptAuthorizationProtocol(session.ask_web_search),
         events,
     )
+
+
+def _search_backend() -> SearchBackend:
+    api_key = os.environ.get("TAVILY_API_KEY", "").strip()
+    if api_key:
+        return TavilySearchBackend(api_key, UrllibTransport())
+    return DdgsSearchBackend(DdgsClient())
 
 
 if __name__ == "__main__":

@@ -1,0 +1,38 @@
+[project]
+name = "agent"
+version = "0.1.0"
+description = "Personal agent project"
+readme = "README.md"
+authors = [
+    { name = "Carlos Giusti", email = "carlosgiusti91@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=2.2.0",
+    "ollama>=0.6.2",
+    "rich>=15.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.9",
+]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+pythonpath = ["."]
+testpaths = ["tests"]
